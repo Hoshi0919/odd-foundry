@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Odd Foundry (奇弹工场) - 奇弹性与非互易力学自运转物流模拟器</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel-bg: rgba(16, 24, 40, 0.85);
+      --border: #1e293b;
+      --cyan: #00f2fe;
+      --amber: #f59e0b;
+      --magenta: #f43f5e;
+      --emerald: #10b981;
+      --purple: #8b5cf6;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+    header {
+      padding: 16px 24px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(8px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge {
+      background: linear-gradient(135deg, #00f2fe, #4facfe);
+      color: #050b14;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background: #0d1527;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--panel-bg);
+      color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.2);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+    }
+    main {
+      flex: 1;
+      display: flex;
+      gap: 16px;
+      padding: 16px 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .sidebar {
+      width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+    }
+    .card h2 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--cyan);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .stat-label { color: var(--text-muted); }
+    .stat-value { font-family: monospace; font-weight: 600; }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ctrl-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .ctrl-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--cyan);
+    }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .action-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #1e293b;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .action-btn:hover {
+      background: #334155;
+      border-color: var(--cyan);
+    }
+    .action-btn.primary {
+      background: linear-gradient(135deg, #00f2fe, #0284c7);
+      color: #050b14;
+      border: none;
+    }
+    .desc-box {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+    .math-formula {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #38bdf8;
+      margin: 6px 0;
+      border-left: 2px solid var(--cyan);
+    }
+    footer {
+      padding: 12px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="badge">ODD ELASTICITY</span>
+      <div>
+        <h1>Odd Foundry (奇弹工场)</h1>
+        <div class="subtitle">非互易力学超构材料与自运转工业物理模拟系统</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="tab-btn active" data-tab="conveyor">行波传输带</button>
+      <button class="tab-btn" data-tab="hopper">防卡拱漏斗</button>
+      <button class="tab-btn" data-tab="engine">应变提取仓</button>
+      <button class="tab-btn" data-tab="diode">声学二极管</button>
+      <button class="tab-btn" data-tab="pipeline">完整工厂流水线</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="canvas-container">
+      <canvas id="simCanvas" width="960" height="580"></canvas>
+    </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <h2>物理与运行指标 <span id="modeTag" style="font-size:11px;color:var(--text-muted);">CONVEYOR</span></h2>
+        <div id="statBox">
+          <div class="stat-row">
+            <span class="stat-label">奇弹性模量 $A_o$:</span>
+            <span class="stat-value" id="valAo" style="color:var(--cyan);">3.00</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">物料运送速度:</span>
+            <span class="stat-value" id="valSpeed" style="color:var(--emerald);">0.52 m/s</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">循环输出功率:</span>
+            <span class="stat-value" id="valPower" style="color:var(--amber);">18.85 W</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">二极管隔离度:</span>
+            <span class="stat-value" id="valIsolation" style="color:var(--magenta);">+24.6 dB</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>参数交互调节</h2>
+        <div class="controls" id="ctrlBox">
+          <div class="ctrl-group">
+            <div class="ctrl-label"><span>奇弹性模量 $A_o$ (Odd Modulus)</span><span id="labelAo">3.0</span></div>
+            <input type="range" id="sliderAo" min="0" max="6" step="0.1" value="3.0">
+          </div>
+          <div class="ctrl-group">
+            <div class="ctrl-label"><span>行波传播相速度 $c$ (Wave Speed)</span><span id="labelWaveSpeed">4.0</span></div>
+            <input type="range" id="sliderSpeed" min="1" max="8" step="0.5" value="4.0">
+          </div>
+          <div class="btn-row">
+            <button class="action-btn primary" id="btnAction1">投送物料包裹</button>
+            <button class="action-btn" id="btnReset">重置场景</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>机制推演说明</h2>
+        <div class="desc-box" id="theoryBox">
+          <div class="math-formula">\sigma_s = \mu \epsilon_s + A_o \epsilon_a</div>
+          在奇弹性介质中，麦克斯韦-贝蒂互易定理破缺。表层质点自发执行逆行椭圆手性震颤，当质点向前移动时恰逢波峰向上托举物料，使物料无需履带或转轮即可单向恒速流动。
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Odd Foundry v1.0.0 · Active Non-Reciprocal Metamaterial Mechanics · Hoshi &lt;hoshi0919@outlook.com&gt;
+  </footer>
+
+  <script>
+    // State management
+    const state = {
+      tab: 'conveyor',
+      oddModulus: 3.0,
+      waveSpeed: 4.0,
+      time: 0,
+      cargoList: [],
+      hopperParticles: [],
+      diodeSites: [],
+      audioCtx: null,
+      ready: true
+    };
+    window.__ODD_FOUNDRY_READY__ = true;
+
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI elements
+    const tabs = document.querySelectorAll('.tab-btn');
+    const modeTag = document.getElementById('modeTag');
+    const valAo = document.getElementById('valAo');
+    const valSpeed = document.getElementById('valSpeed');
+    const valPower = document.getElementById('valPower');
+    const valIsolation = document.getElementById('valIsolation');
+    const sliderAo = document.getElementById('sliderAo');
+    const labelAo = document.getElementById('labelAo');
+    const sliderSpeed = document.getElementById('sliderSpeed');
+    const labelWaveSpeed = document.getElementById('labelWaveSpeed');
+    const btnAction1 = document.getElementById('btnAction1');
+    const btnReset = document.getElementById('btnReset');
+    const theoryBox = document.getElementById('theoryBox');
+
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        state.tab = tab.dataset.tab;
+        modeTag.textContent = state.tab.toUpperCase();
+        updateUI();
+        initMode();
+      });
+    });
+
+    sliderAo.addEventListener('input', (e) => {
+      state.oddModulus = parseFloat(e.target.value);
+      labelAo.textContent = state.oddModulus.toFixed(1);
+      valAo.textContent = state.oddModulus.toFixed(2);
+    });
+
+    sliderSpeed.addEventListener('input', (e) => {
+      state.waveSpeed = parseFloat(e.target.value);
+      labelWaveSpeed.textContent = state.waveSpeed.toFixed(1);
+    });
+
+    btnReset.addEventListener('click', initMode);
+
+    btnAction1.addEventListener('click', () => {
+      if (state.tab === 'conveyor') {
+        state.cargoList.push({ x: 40, v: 0, w: 28, h: 22, color: '#f59e0b' });
+      } else if (state.tab === 'hopper') {
+        initHopper();
+      } else if (state.tab === 'diode') {
+        injectPulse(0, 15.0); // Forward pulse
+      } else if (state.tab === 'engine') {
+        state.cargoList.push({ x: 50, v: 1.5, w: 32, h: 24, boosted: false });
+      } else if (state.tab === 'pipeline') {
+        initPipeline();
+      }
+    });
+
+    function updateUI() {
+      if (state.tab === 'conveyor') {
+        btnAction1.textContent = '投送物料包裹';
+        theoryBox.innerHTML = `
+          <div class="math-formula">\\sigma_s = \\mu \\epsilon_s + A_o \\epsilon_a</div>
+          在奇弹性介质中，横向与纵向弹性波耦合形成手性椭圆表面波。当质点向前运动时处于波峰并对物料产生法向压力，向后运动时进入波谷解除接触，驱动宏观货物无轮轨单向巡航。
+        `;
+      } else if (state.tab === 'hopper') {
+        btnAction1.textContent = '重置落料漏斗';
+        theoryBox.innerHTML = `
+          <div class="math-formula">F_{transverse} = \\eta_{odd} F_n \\hat{t}</div>
+          经典漏斗在狭窄咽喉处因库仑摩擦与法向挤压锁定为静力学卡拱（Janssen效应）。奇弹性剪切力破坏力链反射对称性，产生自发翻滚力矩使卡拱在0.1秒内自愈坍塌，保证连续下料。
+        `;
+      } else if (state.tab === 'engine') {
+        btnAction1.textContent = '注入加速货物';
+        theoryBox.innerHTML = `
+          <div class="math-formula">W = \\oint \\boldsymbol{\\sigma} : d\\boldsymbol{\\epsilon} = 2\\pi A_o \\epsilon_0^2 > 0</div>
+          应变闭合循环做正功！奇弹性超构材料在周期性边界剪切形变下，直接从微观非平衡能源中提取机械能并连续转移给货物托盘，实现无马达火箭式轨道弹射。
+        `;
+      } else if (state.tab === 'diode') {
+        btnAction1.textContent = '发射正向脉冲 (Site 0)';
+        theoryBox.innerHTML = `
+          <div class="math-formula">k_{eff} = k \\pm \\alpha_{odd}</div>
+          非厄米规范场破缺空间宇称反演对称性。声子向右传播获得低阻抗通量传输，向左传播遭遇指数衰减吸收，提供超20 dB高单向隔离度，保护上游精密设备。
+        `;
+      } else if (state.tab === 'pipeline') {
+        btnAction1.textContent = '重启流水线';
+        theoryBox.innerHTML = `
+          <div class="math-formula">[Hopper] \\to [Wave] \\to [Engine] \\to [Diode]</div>
+          四大奇弹性机制全功能集成：防卡料斗持续供料 $\\to$ 行波传送带无轨平移 $\\to$ 应变引擎动态提速 $\\to$ 机械二极管吸收终端冲击波，构成永不堵塞的自运转工业网络。
+        `;
+      }
+    }
+
+    function initMode() {
+      state.cargoList = [];
+      if (state.tab === 'conveyor') {
+        state.cargoList = [
+          { x: 100, v: 0, w: 28, h: 22, color: '#f59e0b' },
+          { x: 300, v: 0, w: 28, h: 22, color: '#00f2fe' }
+        ];
+      } else if (state.tab === 'hopper') {
+        initHopper();
+      } else if (state.tab === 'engine') {
+        state.cargoList = [{ x: 80, v: 1.2, w: 32, h: 24, boosted: false }];
+      } else if (state.tab === 'diode') {
+        initDiode();
+      } else if (state.tab === 'pipeline') {
+        initPipeline();
+      }
+    }
+
+    function initHopper() {
+      state.hopperParticles = [];
+      const n = 28;
+      for (let i = 0; i < n; i++) {
+        state.hopperParticles.push({
+          x: canvas.width * 0.5 + (Math.random() - 0.5) * 80,
+          y: 60 + Math.random() * 140,
+          vx: (Math.random() - 0.5) * 2,
+          vy: 0,
+          r: 10,
+          active: true,
+          color: Math.random() > 0.5 ? '#f59e0b' : '#38bdf8'
+        });
+      }
+    }
+
+    function initDiode() {
+      state.diodeSites = [];
+      const n = 14;
+      for (let i = 0; i < n; i++) {
+        state.diodeSites.push({
+          x: 120 + i * 55,
+          y: 290,
+          u: 0,
+          v: 0
+        });
+      }
+    }
+
+    function injectPulse(siteIdx, amp) {
+      if (state.diodeSites[siteIdx]) {
+        state.diodeSites[siteIdx].v += amp;
+      }
+    }
+
+    function initPipeline() {
+      initHopper();
+      initDiode();
+      state.cargoList = [];
+    }
+
+    // Animation Loop
+    function render() {
+      state.time += 0.016;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (state.tab === 'conveyor') {
+        drawConveyor();
+      } else if (state.tab === 'hopper') {
+        drawHopper();
+      } else if (state.tab === 'engine') {
+        drawEngine();
+      } else if (state.tab === 'diode') {
+        drawDiode();
+      } else if (state.tab === 'pipeline') {
+        drawPipeline();
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    function drawConveyor() {
+      const baseY = 360;
+      const k = 0.025;
+      const omega = state.waveSpeed * 2.0;
+      const ampY = 22;
+      const ampX = 16 * (state.oddModulus / 3.0);
+
+      // Substrate grid
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, baseY, canvas.width, canvas.height - baseY);
+
+      // Draw active traveling wave surface
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height);
+      for (let x = 0; x <= canvas.width; x += 6) {
+        const phase = omega * state.time - k * x;
+        const uy = ampY * Math.cos(phase);
+        ctx.lineTo(x, baseY + uy);
+      }
+      ctx.lineTo(canvas.width, canvas.height);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, baseY - ampY, 0, canvas.height);
+      grad.addColorStop(0, 'rgba(0, 242, 254, 0.4)');
+      grad.addColorStop(1, 'rgba(15, 23, 42, 0.9)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Draw surface boundary line
+      ctx.beginPath();
+      for (let x = 0; x <= canvas.width; x += 6) {
+        const phase = omega * state.time - k * x;
+        const uy = ampY * Math.cos(phase);
+        if (x === 0) ctx.moveTo(x, baseY + uy);
+        else ctx.lineTo(x, baseY + uy);
+      }
+      ctx.strokeStyle = '#00f2fe';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Draw retrograde chiral elliptical trajectories of surface points
+      for (let x = 60; x < canvas.width; x += 90) {
+        const phase = omega * state.time - k * x;
+        const ux = ampX * Math.sin(phase);
+        const uy = ampY * Math.cos(phase);
+
+        // Orbit ellipse
+        ctx.beginPath();
+        ctx.ellipse(x, baseY, ampX, ampY, 0, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Node dot
+        ctx.beginPath();
+        ctx.arc(x + ux, baseY + uy, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+
+        // Velocity vector
+        const vx = ampX * omega * Math.cos(phase) * 0.15;
+        const vy = -ampY * omega * Math.sin(phase) * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(x + ux, baseY + uy);
+        ctx.lineTo(x + ux + vx, baseY + uy + vy);
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      // Update and draw cargo items
+      state.cargoList.forEach(c => {
+        const phase = omega * state.time - k * c.x;
+        const uy = ampY * Math.cos(phase);
+        const surfVx = ampX * omega * Math.cos(phase) * 0.3;
+
+        // Normal load is high at crest
+        const nLoad = Math.max(0, 1 + uy / ampY);
+        const thrust = 0.4 * nLoad * Math.tanh((surfVx - c.v) / 0.5);
+
+        c.v += thrust;
+        c.v *= 0.98; // damping
+        c.x += c.v;
+
+        if (c.x > canvas.width + 40) c.x = -20;
+
+        const cargoY = baseY + uy - c.h * 0.5;
+
+        ctx.fillStyle = c.color;
+        ctx.fillRect(c.x - c.w * 0.5, cargoY - c.h * 0.5, c.w, c.h);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(c.x - c.w * 0.5, cargoY - c.h * 0.5, c.w, c.h);
+
+        // Small cargo label
+        ctx.fillStyle = '#050b14';
+        ctx.font = '10px monospace';
+        ctx.fillText('CARGO', c.x - 16, cargoY + 3);
+      });
+
+      valSpeed.textContent = (ampX * omega * 0.04).toFixed(2) + ' m/s';
+    }
+
+    function drawHopper() {
+      const cx = canvas.width * 0.5;
+      const topW = 260;
+      const exitW = 55;
+      const topY = 60;
+      const exitY = 320;
+
+      // Draw Funnel Walls
+      ctx.beginPath();
+      // Left wall
+      ctx.moveTo(cx - topW * 0.5, topY);
+      ctx.lineTo(cx - exitW * 0.5, exitY);
+      ctx.lineTo(cx - exitW * 0.5, exitY + 60);
+      // Right wall
+      ctx.moveTo(cx + topW * 0.5, topY);
+      ctx.lineTo(cx + exitW * 0.5, exitY);
+      ctx.lineTo(cx + exitW * 0.5, exitY + 60);
+      ctx.strokeStyle = state.oddModulus > 0.5 ? '#00f2fe' : '#64748b';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Hopper Wall Odd Shear arrows
+      if (state.oddModulus > 0.5) {
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.4)';
+        ctx.lineWidth = 1.5;
+        for (let y = topY + 30; y < exitY; y += 30) {
+          const ratio = (y - topY) / (exitY - topY);
+          const hw = 0.5 * (topW - (topW - exitW) * ratio);
+          // Downward shear vectors on walls
+          ctx.beginPath();
+          ctx.moveTo(cx - hw - 8, y);
+          ctx.lineTo(cx - hw - 8, y + 15);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(cx + hw + 8, y);
+          ctx.lineTo(cx + hw + 8, y + 15);
+          ctx.stroke();
+        }
+      }
+
+      // Physics step for particles
+      const particles = state.hopperParticles;
+      const oddK = state.oddModulus * 0.25;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        if (!p1.active) continue;
+
+        p1.vy += 0.25; // gravity
+
+        // Wall collisions
+        if (p1.y >= topY && p1.y <= exitY) {
+          const ratio = (p1.y - topY) / (exitY - topY);
+          const hw = 0.5 * (topW - (topW - exitW) * ratio);
+          // Left wall
+          if (p1.x - p1.r < cx - hw) {
+            const overlap = (cx - hw) - (p1.x - p1.r);
+            p1.x = cx - hw + p1.r;
+            p1.vx += overlap * 0.6;
+            p1.vy += overlap * oddK; // Active downward shear
+          }
+          // Right wall
+          else if (p1.x + p1.r > cx + hw) {
+            const overlap = (p1.x + p1.r) - (cx + hw);
+            p1.x = cx + hw - p1.r;
+            p1.vx -= overlap * 0.6;
+            p1.vy += overlap * oddK;
+          }
+        }
+
+        // Inter-particle collisions
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          if (!p2.active) continue;
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const dist = Math.hypot(dx, dy);
+          const minDist = p1.r + p2.r;
+
+          if (dist < minDist && dist > 0.001) {
+            const overlap = minDist - dist;
+            const nx = dx / dist;
+            const ny = dy / dist;
+            // Transverse vector
+            const tx = -ny;
+            const ty = nx;
+
+            // Push apart
+            p1.x -= nx * overlap * 0.5;
+            p1.y -= ny * overlap * 0.5;
+            p2.x += nx * overlap * 0.5;
+            p2.y += ny * overlap * 0.5;
+
+            // Odd transverse torque kick!
+            p1.vx -= tx * overlap * oddK * 0.5;
+            p1.vy -= ty * overlap * oddK * 0.5;
+            p2.vx += tx * overlap * oddK * 0.5;
+            p2.vy += ty * overlap * oddK * 0.5;
+          }
+        }
+
+        p1.vx *= 0.95;
+        p1.vy *= 0.97;
+        p1.x += p1.vx;
+        p1.y += p1.vy;
+
+        // Discharge through exit
+        if (p1.y > exitY + 70) {
+          p1.y = topY + Math.random() * 30;
+          p1.x = cx + (Math.random() - 0.5) * 40;
+          p1.vx = 0;
+          p1.vy = 0;
+        }
+
+        // Draw particle
+        ctx.beginPath();
+        ctx.arc(p1.x, p1.y, p1.r, 0, 2 * Math.PI);
+        ctx.fillStyle = p1.color;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '13px sans-serif';
+      ctx.fillText(state.oddModulus > 0.5 ? '✓ 奇应力防卡拱开启：流体化持续下料' : '⚠ 经典刚体模式：极易引发静态卡拱锁死', cx - 110, exitY + 110);
+    }
+
+    function drawEngine() {
+      const cx = 300;
+      const cy = 290;
+      const sz = 160;
+
+      // Cyclic strain deformation
+      const omega = 3.0;
+      const epsS = 0.25 * Math.cos(omega * state.time);
+      const epsA = 0.25 * Math.sin(omega * state.time);
+
+      // Deformed metamaterial block corners
+      const corners = [
+        { x: -sz * 0.5 * (1 + epsS) + sz * 0.5 * epsA, y: -sz * 0.5 * (1 - epsS) },
+        { x: sz * 0.5 * (1 + epsS) + sz * 0.5 * epsA, y: -sz * 0.5 * (1 - epsS) },
+        { x: sz * 0.5 * (1 + epsS) - sz * 0.5 * epsA, y: sz * 0.5 * (1 - epsS) },
+        { x: -sz * 0.5 * (1 + epsS) - sz * 0.5 * epsA, y: sz * 0.5 * (1 - epsS) }
+      ];
+
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      ctx.beginPath();
+      ctx.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < 4; i++) ctx.lineTo(corners[i].x, corners[i].y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0, 242, 254, 0.15)';
+      ctx.fill();
+      ctx.strokeStyle = '#00f2fe';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Metamaterial micro-truss internal struts
+      for (let i = -2; i <= 2; i++) {
+        for (let j = -2; j <= 2; j++) {
+          const px = i * 28 + j * 6 * epsA;
+          const py = j * 28 + i * 6 * epsS;
+          ctx.beginPath();
+          ctx.arc(px, py, 3, 0, 2 * Math.PI);
+          ctx.fillStyle = '#f43f5e';
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+
+      // Lissajous Strain Space Orbit on the right
+      const lx = 680;
+      const ly = 290;
+      const r = 90;
+
+      ctx.beginPath();
+      ctx.arc(lx, ly, r, 0, 2 * Math.PI);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Axis lines
+      ctx.beginPath();
+      ctx.moveTo(lx - r - 20, ly); ctx.lineTo(lx + r + 20, ly);
+      ctx.moveTo(lx, ly - r - 20); ctx.lineTo(lx, ly + r + 20);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.stroke();
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px monospace';
+      ctx.fillText('Normal Shear ε_s', lx + r - 30, ly - 8);
+      ctx.fillText('Pure Shear ε_a', lx + 8, ly - r - 8);
+
+      // Draw strain trajectory
+      ctx.beginPath();
+      for (let t = 0; t <= 2 * Math.PI; t += 0.05) {
+        const px = lx + r * 0.7 * Math.cos(t);
+        const py = ly - r * 0.7 * Math.sin(t);
+        if (t === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.1)';
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Current operating point
+      const curPx = lx + r * 0.7 * Math.cos(omega * state.time);
+      const curPy = ly - r * 0.7 * Math.sin(omega * state.time);
+      ctx.beginPath();
+      ctx.arc(curPx, curPy, 6, 0, 2 * Math.PI);
+      ctx.fillStyle = '#10b981';
+      ctx.fill();
+
+      // Work display
+      const workVal = (2 * Math.PI * state.oddModulus * 0.25 * 0.25 * 10).toFixed(2);
+      valPower.textContent = workVal + ' W';
+
+      ctx.fillStyle = '#10b981';
+      ctx.font = '14px monospace';
+      ctx.fillText(`∮ σ:dε = +${workVal} J/cycle`, lx - 70, ly + r + 40);
+
+      // Accelerating Cargo Pallet
+      state.cargoList.forEach(c => {
+        if (c.x > cx - sz * 0.5 && c.x < cx + sz * 0.5) {
+          c.v += state.oddModulus * 0.08; // Continuous work boost!
+          c.boosted = true;
+        }
+        c.x += c.v * 3;
+        if (c.x > canvas.width + 50) {
+          c.x = 40;
+          c.v = 1.2;
+          c.boosted = false;
+        }
+
+        ctx.fillStyle = c.boosted ? '#10b981' : '#f59e0b';
+        ctx.fillRect(c.x - c.w * 0.5, cy + sz * 0.5 + 20, c.w, c.h);
+        ctx.strokeStyle = '#ffffff';
+        ctx.strokeRect(c.x - c.w * 0.5, cy + sz * 0.5 + 20, c.w, c.h);
+      });
+    }
+
+    function drawDiode() {
+      const sites = state.diodeSites;
+      if (!sites || sites.length === 0) initDiode();
+
+      const k = 0.35;
+      const alpha = state.oddModulus * 0.04;
+      const damp = 0.94;
+
+      // Physics step for 1D asymmetric chain
+      for (let i = 0; i < sites.length; i++) {
+        const ul = i > 0 ? sites[i - 1].u : 0;
+        const ur = i < sites.length - 1 ? sites[i + 1].u : 0;
+
+        // Effective left coupling k+alpha, right coupling k-alpha
+        const fEven = k * (ur - 2 * sites[i].u + ul);
+        const fOdd = -alpha * (ur - ul);
+
+        sites[i].v += (fEven + fOdd);
+        sites[i].v *= damp;
+      }
+
+      for (let i = 0; i < sites.length; i++) {
+        sites[i].u += sites[i].v;
+      }
+
+      // Draw waveguide track
+      ctx.beginPath();
+      ctx.moveTo(80, 290);
+      ctx.lineTo(880, 290);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Directional arrow on track
+      ctx.fillStyle = '#00f2fe';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('▶▶ 非互易单向声子通道 (High Transmittance Forward) ▶▶', 240, 230);
+
+      // Draw springs
+      for (let i = 0; i < sites.length - 1; i++) {
+        const x1 = sites[i].x;
+        const y1 = sites[i].y + sites[i].u;
+        const x2 = sites[i + 1].x;
+        const y2 = sites[i + 1].y + sites[i + 1].u;
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Draw oscillator sites
+      sites.forEach((s, idx) => {
+        const sy = s.y + s.u;
+        ctx.beginPath();
+        ctx.arc(s.x, sy, 10, 0, 2 * Math.PI);
+        ctx.fillStyle = idx === 0 ? '#10b981' : (idx === sites.length - 1 ? '#f43f5e' : '#38bdf8');
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px monospace';
+        ctx.fillText(`${idx}`, s.x - 3, 330);
+      });
+
+      // Backward pulse injection button area on canvas
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(800, 360, 110, 32);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('注入反向冲击波', 812, 380);
+
+      valIsolation.textContent = '+' + (12 + state.oddModulus * 4.2).toFixed(1) + ' dB';
+    }
+
+    // Canvas click detection for interactive triggers
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      if (state.tab === 'diode') {
+        if (mx >= 800 && mx <= 910 && my >= 360 && my <= 392) {
+          injectPulse(state.diodeSites.length - 1, 15.0); // Backward pulse
+        }
+      }
+    });
+
+    function drawPipeline() {
+      // Integrated visual representation combining all 4 units
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Section borders and titles
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '13px sans-serif';
+      ctx.fillText('① 奇应力防卡料仓', 60, 40);
+      ctx.fillText('② 行波无轴自运带', 320, 40);
+      ctx.fillText('③ 循环应变提速仓', 580, 40);
+      ctx.fillText('④ 非互易机械二极管', 780, 40);
+
+      // Mini hopper
+      const hx = 120, hy = 70;
+      ctx.beginPath();
+      ctx.moveTo(hx - 50, hy); ctx.lineTo(hx - 15, hy + 80); ctx.lineTo(hx - 15, hy + 120);
+      ctx.moveTo(hx + 50, hy); ctx.lineTo(hx + 15, hy + 80); ctx.lineTo(hx + 15, hy + 120);
+      ctx.strokeStyle = '#00f2fe';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Mini wave conveyor
+      const wy = 230;
+      ctx.beginPath();
+      for (let x = 120; x <= 520; x += 5) {
+        const uy = 8 * Math.cos(state.time * 6 - 0.04 * x);
+        if (x === 120) ctx.moveTo(x, wy + uy); else ctx.lineTo(x, wy + uy);
+      }
+      ctx.strokeStyle = '#00f2fe';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Mini Strain Engine Core
+      const ex = 640, ey = 230;
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(ex - 40, ey - 30, 80, 60);
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
+      ctx.fillRect(ex - 40, ey - 30, 80, 60);
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '10px monospace';
+      ctx.fillText('BOOSTER', ex - 22, ey + 4);
+
+      // Mini Diode
+      for (let i = 0; i < 6; i++) {
+        const dx = 760 + i * 26;
+        ctx.beginPath();
+        ctx.arc(dx, ey, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+        if (i < 5) {
+          ctx.beginPath();
+          ctx.moveTo(dx, ey);
+          ctx.lineTo(dx + 26, ey);
+          ctx.strokeStyle = 'rgba(0, 242, 254, 0.4)';
+          ctx.stroke();
+        }
+      }
+
+      ctx.fillStyle = '#10b981';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('✓ 工业流水线全域自运转绿灯：无机械磨损 · 零卡死 · 恒定动量流', 260, 480);
+    }
+
+    // Startup
+    initMode();
+    updateUI();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
